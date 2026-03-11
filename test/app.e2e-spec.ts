@@ -23,6 +23,22 @@ interface TaskResponse {
   readonly updatedAt: string;
 }
 
+interface GeminiApiSuccessResponse {
+  readonly candidates: readonly [
+    {
+      readonly content: {
+        readonly parts: readonly [
+          {
+            readonly text: string;
+          },
+        ];
+      };
+    },
+  ];
+}
+
+type FetchMock = jest.Mock<Promise<Response>, Parameters<typeof fetch>>;
+
 /**
  * Returns the HTTP server handle with the type expected by supertest.
  * @param app Initialized Nest application.
@@ -118,8 +134,16 @@ async function waitForTimestampTick(): Promise<void> {
 describe('Tasks listing (e2e)', () => {
   let app: INestApplication;
   let prismaService: PrismaService;
+  let fetchMock: FetchMock;
+  const originalFetch = global.fetch;
 
   beforeAll(async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    process.env.GEMINI_MODEL = 'gemini-test-model';
+    process.env.AI_TIMEOUT_MS = '100';
+    fetchMock = jest.fn<Promise<Response>, Parameters<typeof fetch>>();
+    global.fetch = fetchMock as typeof fetch;
+
     const testApplication = await createTestApplication();
 
     app = testApplication.app;
@@ -128,9 +152,11 @@ describe('Tasks listing (e2e)', () => {
 
   beforeEach(async () => {
     await prismaService.task.deleteMany();
+    fetchMock.mockReset();
   });
 
   afterAll(async () => {
+    global.fetch = originalFetch;
     await app.close();
   });
 
@@ -176,5 +202,98 @@ describe('Tasks listing (e2e)', () => {
         ]);
         expect(body.map((task) => task.iceScore)).toEqual([1000, 60, 60, 10]);
       });
+  });
+
+  it('estimates ICE with AI and persists the clamped result', async () => {
+    const task = await createTask(app, 'ai estimated task');
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '{"impact":11,"confidence":8,"effort":0}',
+                  },
+                ],
+              },
+            },
+          ],
+        } satisfies GeminiApiSuccessResponse),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+    );
+
+    await request(getHttpServer(app))
+      .post(`/tasks/${task.id}/ice/estimate`)
+      .expect(200)
+      .expect(({ body }: { readonly body: TaskResponse }) => {
+        expect(body.impact).toBe(10);
+        expect(body.confidence).toBe(8);
+        expect(body.effort).toBe(1);
+        expect(body.iceScore).toBe(800);
+        expect(body.iceSource).toBe('AI');
+      });
+  });
+
+  it('returns 404 when AI estimation targets a missing task', async () => {
+    await request(getHttpServer(app))
+      .post('/tasks/missing-task/ice/estimate')
+      .expect(404)
+      .expect(({ body }: { readonly body: { readonly error: string } }) => {
+        expect(body.error).toBe('NOT_FOUND');
+      });
+  });
+
+  it('returns 502 when the AI provider payload is invalid', async () => {
+    const task = await createTask(app, 'invalid ai payload task');
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '{"impact":"invalid","confidence":8}',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+    );
+
+    await request(getHttpServer(app))
+      .post(`/tasks/${task.id}/ice/estimate`)
+      .expect(502)
+      .expect(
+        ({
+          body,
+        }: {
+          readonly body: {
+            readonly error: string;
+            readonly message: string;
+          };
+        }) => {
+          expect(body.error).toBe('AI_UNAVAILABLE');
+          expect(body.message).toContain('Invalid AI payload');
+        },
+      );
   });
 });

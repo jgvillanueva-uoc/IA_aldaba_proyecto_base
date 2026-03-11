@@ -1,7 +1,14 @@
 /**
  * Groups ICE-related task routes under the /tasks/:id namespace.
  */
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import type { TaskRecord } from './ports/task-repository.port';
 import { ManualIceDto } from './dto/manual-ice.dto';
 import { TasksService } from './tasks.service';
@@ -31,18 +38,13 @@ export class TasksIceController {
   }
 
   /**
-   * Placeholder endpoint for AI ICE estimation route wiring (Fase 5).
+   * Estimates ICE values through the AI provider and persists the result.
    * @param id Task identifier from route parameter.
-   * @returns Route readiness payload.
+   * @returns Updated task with AI-estimated ICE values and source metadata.
    */
   @Post('estimate')
-  public estimateIce(@Param('id') id: string): {
-    readonly taskId: string;
-    readonly route: string;
-  } {
-    return {
-      taskId: id,
-      route: 'estimate',
-    };
+  @HttpCode(HttpStatus.OK)
+  public estimateIce(@Param('id') id: string): Promise<TaskRecord> {
+    return this.tasksService.estimateIceWithAi(id);
   }
 }
