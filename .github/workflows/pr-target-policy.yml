@@ -1,0 +1,32 @@
+name: PR Target Policy
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+jobs:
+  validate-target:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR source/target policy
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          echo "Head: ${HEAD_REF}"
+          echo "Base: ${BASE_REF}"
+
+          if [[ "${HEAD_REF}" =~ ^(feature|fix|chore|hotfix)/ ]]; then
+            if [[ "${BASE_REF}" != "dev" ]]; then
+              echo "Error: issue branches (feature/fix/chore/hotfix) must target 'dev'."
+              exit 1
+            fi
+          fi
+
+          if [[ "${BASE_REF}" == "main" && "${HEAD_REF}" != "dev" ]]; then
+            echo "Error: only 'dev' can open PRs to 'main'."
+            exit 1
+          fi
+
+          echo "PR target policy check passed."
