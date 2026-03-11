@@ -84,7 +84,7 @@ async function ensureLabel(repoContext, label) {
 /**
  * Lists all existing issues in the repository.
  * @param {{ owner: string, repo: string }} repoContext Repository coordinates.
- * @returns {Promise<Array<{ title: string }>>} Existing issues metadata.
+ * @returns {Promise<Array<{ number: number, title: string, assignees: Array<{ login: string }> }>>} Existing issues metadata.
  */
 async function listExistingIssues(repoContext) {
   const response = await githubRequest(
@@ -100,17 +100,45 @@ async function listExistingIssues(repoContext) {
 }
 
 /**
- * Creates an issue if an issue with the same title does not already exist.
+ * Adds assignees to an existing issue.
  * @param {{ owner: string, repo: string }} repoContext Repository coordinates.
- * @param {Array<{ title: string }>} existingIssues Existing issues list.
+ * @param {number} issueNumber Issue number to update.
+ * @param {string[]} assignees Assignees to add.
+ * @returns {Promise<void>} Resolves when the issue has been updated.
+ */
+async function addAssignees(repoContext, issueNumber, assignees) {
+  const response = await githubRequest(
+    `/repos/${repoContext.owner}/${repoContext.repo}/issues/${issueNumber}/assignees`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ assignees }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.warn(`Unable to assign issue #${issueNumber}. Status: ${response.status}. Body: ${body}`);
+  }
+}
+
+/**
+ * Creates an issue if an issue with the same title does not already exist.
+ * If the issue exists but has no assignees, adds the requested assignees.
+ * @param {{ owner: string, repo: string }} repoContext Repository coordinates.
+ * @param {Array<{ number: number, title: string, assignees: Array<{ login: string }> }>} existingIssues Existing issues list.
  * @param {{ title: string, body: string, assignees: string[], labels: string[] }} issue Issue payload.
  * @returns {Promise<void>} Resolves when the issue exists or has been created.
  */
 async function ensureIssue(repoContext, existingIssues, issue) {
-  const alreadyExists = existingIssues.some((currentIssue) => currentIssue.title === issue.title);
+  const existing = existingIssues.find((currentIssue) => currentIssue.title === issue.title);
 
-  if (alreadyExists) {
-    console.log(`Issue already exists: ${issue.title}`);
+  if (existing) {
+    if (existing.assignees.length === 0 && issue.assignees.length > 0) {
+      console.log(`Issue exists without assignees, updating: ${issue.title}`);
+      await addAssignees(repoContext, existing.number, issue.assignees);
+    } else {
+      console.log(`Issue already exists: ${issue.title}`);
+    }
     return;
   }
 
@@ -154,14 +182,16 @@ async function ensureIssue(repoContext, existingIssues, issue) {
 
 /**
  * Builds the six implementation issues requested by the project manager flow.
+ * Uses the repository owner as assignee so it always matches a valid collaborator.
  * @returns {Array<{ title: string, body: string, assignees: string[], labels: string[] }>} Issue definitions.
  */
 function buildIssues() {
+  const owner = process.env.GITHUB_REPOSITORY_OWNER ?? '';
   return [
     {
       title: 'Fase 1: contrato de persistencia y adaptador inicial',
       labels: ['todo'],
-      assignees: ['jorgegvillanueva'],
+      assignees: [owner],
       body: `## Contexto
 Fase 1 del plan de implementación del Gestor ICE MVP en NestJS + TypeScript.
 
@@ -195,7 +225,7 @@ Se puede crear y consultar una tarea a través del repositorio sin exponer Prism
     {
       title: 'Fase 2: CRUD de tareas base',
       labels: ['todo'],
-      assignees: ['jorgegvillanueva'],
+      assignees: [owner],
       body: `## Contexto
 Fase 2 del plan de implementación del Gestor ICE MVP en NestJS + TypeScript.
 
@@ -227,7 +257,7 @@ Todos los endpoints CRUD responden con los códigos esperados por OpenAPI.`,
     {
       title: 'Fase 3: dominio ICE manual',
       labels: ['todo'],
-      assignees: ['jorgegvillanueva'],
+      assignees: [owner],
       body: `## Contexto
 Fase 3 del plan de implementación del Gestor ICE MVP en NestJS + TypeScript.
 
@@ -259,7 +289,7 @@ iceScore siempre consistente tras cambios manuales de ICE.`,
     {
       title: 'Fase 4: priorización por score ICE',
       labels: ['todo'],
-      assignees: ['jorgegvillanueva'],
+      assignees: [owner],
       body: `## Contexto
 Fase 4 del plan de implementación del Gestor ICE MVP en NestJS + TypeScript.
 
@@ -289,7 +319,7 @@ Listado priorizado devuelve tareas de mayor a menor score.`,
     {
       title: 'Fase 5: integración IA para estimación ICE',
       labels: ['todo'],
-      assignees: ['jorgegvillanueva'],
+      assignees: [owner],
       body: `## Contexto
 Fase 5 del plan de implementación del Gestor ICE MVP en NestJS + TypeScript.
 
@@ -321,7 +351,7 @@ Estimación IA devuelve 200 en camino feliz y 502 en fallos controlados.`,
     {
       title: 'Fase 6: calidad mínima y robustez',
       labels: ['todo'],
-      assignees: ['jorgegvillanueva'],
+      assignees: [owner],
       body: `## Contexto
 Fase 6 del plan de implementación del Gestor ICE MVP en NestJS + TypeScript.
 
