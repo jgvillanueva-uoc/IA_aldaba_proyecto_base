@@ -2,6 +2,7 @@
  * Orchestrates task-related use cases for the Tasks module.
  */
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { AiService } from '../ai/ai.service';
 import { IceService } from '../ice/ice.service';
 import { TASK_REPOSITORY_PORT } from './ports/task-repository.port';
 import type {
@@ -16,13 +17,15 @@ import type { ManualIceDto } from './dto/manual-ice.dto';
 @Injectable()
 export class TasksService {
   /**
-   * Creates TasksService with repository and ICE domain dependencies.
+   * Creates TasksService with repository and domain dependencies.
    * @param taskRepositoryPort Abstract repository for task persistence.
+   * @param aiService Application service for external AI estimation.
    * @param iceService Domain service for ICE score calculation and validation.
    */
   public constructor(
     @Inject(TASK_REPOSITORY_PORT)
     private readonly taskRepositoryPort: TaskRepositoryPort,
+    private readonly aiService: AiService,
     private readonly iceService: IceService,
   ) {}
 
@@ -147,6 +150,41 @@ export class TasksService {
       effort: dto.effort,
       iceScore,
       iceSource: 'MANUAL',
+    });
+
+    if (updatedTask === null) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return updatedTask;
+  }
+
+  /**
+   * Estimates ICE values with the AI provider, clamps them through IceService,
+   * calculates the final score and persists the result with AI source.
+   * @param id Task identifier.
+   * @returns Updated task with AI-estimated ICE values.
+   */
+  public async estimateIceWithAi(id: string): Promise<TaskRecord> {
+    const task = await this.getTaskByIdOrThrow(id);
+    const estimation = await this.aiService.estimateIce(task.description);
+    const clampedValues = this.iceService.clampValues(
+      estimation.impact,
+      estimation.confidence,
+      estimation.effort,
+    );
+    const iceScore = this.iceService.calculateScore(
+      clampedValues.impact,
+      clampedValues.confidence,
+      clampedValues.effort,
+    );
+
+    const updatedTask = await this.taskRepositoryPort.update(id, {
+      impact: clampedValues.impact,
+      confidence: clampedValues.confidence,
+      effort: clampedValues.effort,
+      iceScore,
+      iceSource: 'AI',
     });
 
     if (updatedTask === null) {

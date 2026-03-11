@@ -10,6 +10,11 @@ export interface AppConfiguration {
   readonly persistence: {
     readonly databaseUrl: string;
   };
+  readonly ai: {
+    readonly geminiApiKey?: string;
+    readonly geminiModel: string;
+    readonly timeoutMs: number;
+  };
 }
 
 /**
@@ -25,6 +30,11 @@ export function configuration(): AppConfiguration {
     },
     persistence: {
       databaseUrl: env.DATABASE_URL,
+    },
+    ai: {
+      geminiApiKey: env.GEMINI_API_KEY,
+      geminiModel: env.GEMINI_MODEL,
+      timeoutMs: env.AI_TIMEOUT_MS,
     },
   };
 }
