@@ -3,6 +3,7 @@
  */
 export interface ValidatedEnv {
   readonly PORT: number;
+  readonly DATABASE_URL: string;
 }
 
 /**
@@ -14,6 +15,7 @@ export interface ValidatedEnv {
 export function validateEnv(env: NodeJS.ProcessEnv): ValidatedEnv {
   const portRaw: string = env.PORT ?? '3000';
   const port: number = Number(portRaw);
+  const databaseUrl: string = env.DATABASE_URL ?? 'file:./dev.db';
 
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
     throw new Error(
@@ -23,5 +25,6 @@ export function validateEnv(env: NodeJS.ProcessEnv): ValidatedEnv {
 
   return {
     PORT: port,
+    DATABASE_URL: databaseUrl,
   };
 }

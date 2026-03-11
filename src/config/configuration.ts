@@ -7,6 +7,9 @@ export interface AppConfiguration {
   readonly app: {
     readonly port: number;
   };
+  readonly persistence: {
+    readonly databaseUrl: string;
+  };
 }
 
 /**
@@ -19,6 +22,9 @@ export function configuration(): AppConfiguration {
   return {
     app: {
       port: env.PORT,
+    },
+    persistence: {
+      databaseUrl: env.DATABASE_URL,
     },
   };
 }
