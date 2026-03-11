@@ -119,10 +119,37 @@ async function ensureIssue(repoContext, existingIssues, issue) {
     body: JSON.stringify(issue),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Unable to create issue ${issue.title}. Status: ${response.status}. Body: ${body}`);
+  if (response.ok) {
+    return;
   }
+
+  const body = await response.text();
+  const invalidAssignee =
+    response.status === 422 && body.includes('cannot be assigned to this issue');
+
+  if (invalidAssignee) {
+    console.log(`Assignee is not allowed by repository settings. Creating issue without assignee: ${issue.title}`);
+
+    const retryResponse = await githubRequest(`/repos/${repoContext.owner}/${repoContext.repo}/issues`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: issue.title,
+        body: issue.body,
+        labels: issue.labels,
+      }),
+    });
+
+    if (retryResponse.ok) {
+      return;
+    }
+
+    const retryBody = await retryResponse.text();
+    throw new Error(
+      `Unable to create issue ${issue.title} after assignee fallback. Status: ${retryResponse.status}. Body: ${retryBody}`,
+    );
+  }
+
+  throw new Error(`Unable to create issue ${issue.title}. Status: ${response.status}. Body: ${body}`);
 }
 
 /**
