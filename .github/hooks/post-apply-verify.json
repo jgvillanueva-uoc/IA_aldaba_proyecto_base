@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "cwd": "${workspaceFolder}",
+        "timeout": 1800,
+        "command": "node -e \"const fs=require('fs'); const cp=require('child_process'); let raw='{}'; try{raw=fs.readFileSync(0,'utf8')||'{}';}catch{} let p={}; try{p=JSON.parse(raw);}catch{} const tool=p.toolName||p.hookEventInput?.toolName||''; const editTools=new Set(['create_file','replace_string_in_file','multi_replace_string_in_file','insert_edit_into_file','delete_file','apply_patch']); if(!editTools.has(tool)){ console.log('[post-verify] skipped: non-edit tool -> '+tool); process.exit(0);} console.log('[post-verify] running npm run verify after '+tool); const npmBin=process.platform==='win32'?'npm.cmd':'npm'; const r=cp.spawnSync(npmBin,['run','verify'],{stdio:'inherit'}); process.exit(r.status===null?1:r.status);\""
+      }
+    ]
+  }
+}
