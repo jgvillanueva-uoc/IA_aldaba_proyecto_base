@@ -61,12 +61,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception.message,
       );
 
+      let errorCode: string = ERROR_CODES.INTERNAL_ERROR;
+
+      if (statusCode === 400) {
+        errorCode = ERROR_CODES.VALIDATION_ERROR;
+      } else if (statusCode === 404) {
+        errorCode = ERROR_CODES.NOT_FOUND;
+      }
+
       return {
         statusCode,
-        error:
-          statusCode === 400
-            ? ERROR_CODES.VALIDATION_ERROR
-            : ERROR_CODES.INTERNAL_ERROR,
+        error: errorCode,
         message,
         timestamp: new Date().toISOString(),
         path,

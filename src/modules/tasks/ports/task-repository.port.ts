@@ -20,7 +20,7 @@ export interface TaskRecord {
 export interface CreateTaskInput {
   readonly title: string;
   readonly description: string;
-  readonly status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  readonly status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
 }
 
 export interface UpdateTaskInput {
