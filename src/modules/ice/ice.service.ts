@@ -26,19 +26,19 @@ export class IceService {
 
   /**
    * Calculates the ICE score using the standard formula:
-   *   score = round((impact × confidence) / effort)
+   *   score = round(((impact × confidence) / effort) × 10)
    * Assumes inputs are already validated and within 1–10 range.
    * @param impact Impact value (1–10).
    * @param confidence Confidence value (1–10).
    * @param effort Effort value (1–10, must be > 0 to avoid division by zero).
-   * @returns Integer ICE score in the 0–100 range.
+   * @returns Integer ICE score in the 1–1000 range.
    */
   public calculateScore(
     impact: number,
     confidence: number,
     effort: number,
   ): number {
-    return Math.round((impact * confidence) / effort);
+    return Math.round(((impact * confidence) / effort) * 10);
   }
 
   /**

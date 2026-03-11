@@ -58,8 +58,12 @@ export class PrismaTaskRepository implements TaskRepositoryPort {
   public async findAll(sort?: ListTasksSort): Promise<TaskRecord[]> {
     const orderBy =
       sort === 'ice'
-        ? [{ iceScore: 'desc' as const }, { createdAt: 'desc' as const }]
-        : [{ createdAt: 'desc' as const }];
+        ? [
+            { iceScore: 'desc' as const },
+            { createdAt: 'desc' as const },
+            { id: 'desc' as const },
+          ]
+        : [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
 
     const tasks = await this.prismaService.task.findMany({ orderBy });
 
