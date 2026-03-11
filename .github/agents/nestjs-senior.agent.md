@@ -116,3 +116,19 @@ En cada entrega, verificar explicitamente:
 4. Comentarios presentes/actualizados en archivos, funciones y metodos tocados.
 5. Tipado estricto preservado.
 6. Explicacion previa antes de ejecutar acciones.
+
+## Verificacion automatica post-edicion (obligatorio)
+
+Regla forzada:
+- Despues de CUALQUIER edicion de archivo (crear, modificar o borrar), ejecutar SIEMPRE:
+
+```bash
+npm run verify
+```
+
+- Este comando ejecuta en orden: `format`, `lint`, `test` y `build`.
+- Si alguno falla, corregir el problema antes de continuar con el siguiente paso del plan.
+- No reportar una tarea como completada si `npm run verify` no ha terminado en verde.
+
+Referencia del hook: `.github/hooks/post-apply-verify.json`
+Este fichero define la misma logica como hook PostToolUse para entornos que lo soporten (Claude Code CLI via `.claude/settings.json`).
