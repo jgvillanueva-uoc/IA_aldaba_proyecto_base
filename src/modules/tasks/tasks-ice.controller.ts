@@ -1,39 +1,50 @@
 /**
  * Groups ICE-related task routes under the /tasks/:id namespace.
  */
-import { Controller, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
+import type { TaskRecord } from './ports/task-repository.port';
+import { ManualIceDto } from './dto/manual-ice.dto';
+import { TasksService } from './tasks.service';
 
 @Controller('tasks/:id/ice')
 export class TasksIceController {
   /**
-   * Placeholder endpoint for manual ICE assignment route wiring.
+   * Injects task application service for ICE use cases.
+   * @param tasksService Service that orchestrates task and ICE use cases.
+   */
+  public constructor(private readonly tasksService: TasksService) {}
+
+  /**
+   * Assigns manual ICE values to a task and persists the calculated score.
+   * Returns 404 when the task does not exist.
+   * Returns 400 when any ICE value is outside the 1–10 range.
    * @param id Task identifier from route parameter.
-   * @returns Route readiness payload.
+   * @param manualIceDto Validated ICE input payload.
+   * @returns Updated task with calculated iceScore and iceSource set to MANUAL.
    */
   @Post('manual')
-  public manualIce(@Param('id') id: string): {
-    readonly taskId: string;
-    readonly route: string;
-  } {
-    return {
-      taskId: id,
-      route: 'manual',
-    };
+  public applyManualIce(
+    @Param('id') id: string,
+    @Body() manualIceDto: ManualIceDto,
+  ): Promise<TaskRecord> {
+    return this.tasksService.applyManualIce(id, manualIceDto);
   }
 
   /**
-   * Placeholder endpoint for AI ICE estimation route wiring.
+   * Estimates ICE values through the AI provider and persists the result.
    * @param id Task identifier from route parameter.
-   * @returns Route readiness payload.
+   * @returns Updated task with AI-estimated ICE values and source metadata.
    */
   @Post('estimate')
-  public estimateIce(@Param('id') id: string): {
-    readonly taskId: string;
-    readonly route: string;
-  } {
-    return {
-      taskId: id,
-      route: 'estimate',
-    };
+  @HttpCode(HttpStatus.OK)
+  public estimateIce(@Param('id') id: string): Promise<TaskRecord> {
+    return this.tasksService.estimateIceWithAi(id);
   }
 }
