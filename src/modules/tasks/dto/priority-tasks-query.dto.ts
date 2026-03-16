@@ -14,5 +14,5 @@ export class PriorityTasksQueryDto {
   @IsIn(PRIORITY_ORDER_VALUES, {
     message: 'order must be one of the following values: asc, desc',
   })
-  public readonly order?: PriorityOrder;
+  order?: PriorityOrder = 'desc';
 }

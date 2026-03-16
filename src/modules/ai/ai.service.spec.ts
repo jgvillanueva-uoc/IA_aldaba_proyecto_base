@@ -1,15 +1,15 @@
 import { AiService } from './ai.service';
-import { GeminiProvider } from './providers/gemini.provider';
+import type { GeminiProvider } from './providers/gemini.provider';
 
 describe('AiService', () => {
   let service: AiService;
-  let mockProvider: any;
+  let mockProvider: jest.Mocked<GeminiProvider>;
 
   beforeEach(() => {
     mockProvider = {
       estimateIce: jest.fn(),
       getStatus: jest.fn(),
-    };
+    } as unknown as jest.Mocked<GeminiProvider>;
     service = new AiService(mockProvider);
   });
 

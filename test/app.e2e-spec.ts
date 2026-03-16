@@ -1,7 +1,11 @@
 /**
  * Covers end-to-end behavior for task listing and ICE prioritization.
  */
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -68,8 +72,10 @@ async function createTestApplication(): Promise<{
       forbidNonWhitelisted: true,
       transform: true,
       exceptionFactory: (errors) => {
-        const messages = errors.map(e => Object.values(e.constraints ?? {}).join(', ')).join('; ');
-        return new (require('@nestjs/common').BadRequestException)(messages);
+        const messages = errors
+          .map((e) => Object.values(e.constraints ?? {}).join(', '))
+          .join('; ');
+        return new BadRequestException(messages);
       },
     }),
   );
@@ -138,28 +144,30 @@ async function waitForTimestampTick(): Promise<void> {
 describe('Tasks listing (e2e)', () => {
   describe('Tasks priority endpoint (e2e)', () => {
     it('returns tasks ordered by iceScore desc (default)', async () => {
-      const t1 = await createTask(app, 't1');
+      const t1 = await createTask(app, 'task1');
       await waitForTimestampTick();
-      const t2 = await createTask(app, 't2');
+      const t2 = await createTask(app, 'task2');
       await applyManualIce(app, t1.id, 5, 5, 5); // iceScore 125
       await applyManualIce(app, t2.id, 10, 10, 1); // iceScore 1000
       const response = await request(getHttpServer(app))
         .get('/tasks/priority')
         .expect(200);
-      const ids = response.body.map((task: TaskResponse) => task.id);
+      const tasks = response.body as TaskResponse[];
+      const ids = tasks.map((task) => task.id);
       expect(ids).toEqual([t2.id, t1.id]);
     });
 
     it('returns tasks ordered by iceScore asc', async () => {
-      const t1 = await createTask(app, 't1');
+      const t1 = await createTask(app, 'task1');
       await waitForTimestampTick();
-      const t2 = await createTask(app, 't2');
+      const t2 = await createTask(app, 'task2');
       await applyManualIce(app, t1.id, 5, 5, 5); // iceScore 125
       await applyManualIce(app, t2.id, 10, 10, 1); // iceScore 1000
       const response = await request(getHttpServer(app))
         .get('/tasks/priority?order=asc')
         .expect(200);
-      const ids = response.body.map((task: TaskResponse) => task.id);
+      const tasks = response.body as TaskResponse[];
+      const ids = tasks.map((task) => task.id);
       expect(ids).toEqual([t1.id, t2.id]);
     });
 
@@ -172,7 +180,8 @@ describe('Tasks listing (e2e)', () => {
       const response = await request(getHttpServer(app))
         .get('/tasks/priority?order=asc')
         .expect(200);
-      const ids = response.body.map((task: TaskResponse) => task.id);
+      const tasks = response.body as TaskResponse[];
+      const ids = tasks.map((task) => task.id);
       expect(ids).toEqual([t1.id, t2.id]);
     });
 
@@ -180,7 +189,7 @@ describe('Tasks listing (e2e)', () => {
       await request(getHttpServer(app))
         .get('/tasks/priority?order=invalid')
         .expect(400)
-        .expect(({ body }) => {
+        .expect(({ body }: { readonly body: { readonly message: string } }) => {
           expect(body.message).toContain(
             'order must be one of the following values',
           );
@@ -194,9 +203,10 @@ describe('Tasks listing (e2e)', () => {
       const response = await request(getHttpServer(app))
         .get('/tasks/priority?order=desc')
         .expect(200);
-      const ids = response.body.map((task: TaskResponse) => task.id);
+      const tasks = response.body as TaskResponse[];
+      const ids = tasks.map((task) => task.id);
       expect(ids).toEqual([t2.id, t1.id]);
-      expect(response.body[1].iceScore).toBeNull();
+      expect(tasks[1]?.iceScore).toBeNull();
     });
   });
   describe('Tasks CRUD endpoints (e2e)', () => {
@@ -211,12 +221,13 @@ describe('Tasks listing (e2e)', () => {
         .post('/tasks')
         .send({ title: 'new task', description: 'desc' })
         .expect(201);
-      expect(response.body).toMatchObject({
+      const created = response.body as TaskResponse;
+      expect(created).toMatchObject({
         title: 'new task',
         description: 'desc',
         status: 'TODO',
       });
-      expect(response.body.id).toBeDefined();
+      expect(created.id).toBeDefined();
     });
 
     it('gets a task by id (GET /tasks/:id)', async () => {
@@ -231,10 +242,11 @@ describe('Tasks listing (e2e)', () => {
         .patch(`/tasks/${task.id}`)
         .send({ title: 'updated', impact: 5, confidence: 5, effort: 5 })
         .expect(200);
-      expect(response.body.title).toBe('updated');
-      expect(response.body.impact).toBe(5);
-      expect(response.body.iceScore).toBe(50);
-      expect(response.body.iceSource).toBe('MANUAL');
+      const updated = response.body as TaskResponse;
+      expect(updated.title).toBe('updated');
+      expect(updated.impact).toBe(5);
+      expect(updated.iceScore).toBe(50);
+      expect(updated.iceSource).toBe('MANUAL');
     });
 
     it('deletes a task (DELETE /tasks/:id)', async () => {
@@ -264,7 +276,7 @@ describe('Tasks listing (e2e)', () => {
         .post(`/tasks/${task.id}/ice/manual`)
         .send({ impact: 0, confidence: 11, effort: 5 })
         .expect(400)
-        .expect(({ body }) => {
+        .expect(({ body }: { readonly body: { readonly message: string } }) => {
           expect(body.message).toEqual(expect.any(String));
           expect(body.message).toContain('impact must not be less than 1');
           expect(body.message).toContain(
@@ -278,7 +290,7 @@ describe('Tasks listing (e2e)', () => {
         .post(`/tasks/${task.id}/ice/manual`)
         .send({ impact: 5 })
         .expect(400)
-        .expect(({ body }) => {
+        .expect(({ body }: { readonly body: { readonly message: string } }) => {
           expect(body.message).toEqual(expect.any(String));
           expect(body.message).toMatch(/confidence/);
           expect(body.message).toMatch(/effort/);
@@ -290,7 +302,7 @@ describe('Tasks listing (e2e)', () => {
         .post(`/tasks/${task.id}/ice/manual`)
         .send({ impact: 5.5, confidence: 'high', effort: 3 })
         .expect(400)
-        .expect(({ body }) => {
+        .expect(({ body }: { readonly body: { readonly message: string } }) => {
           expect(body.message).toEqual(expect.any(String));
           expect(body.message).toContain('impact must be an integer number');
           expect(body.message).toContain(
