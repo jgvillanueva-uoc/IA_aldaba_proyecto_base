@@ -32,6 +32,7 @@ description: |
   - No puede dar por terminada la tarea si queda algún test en rojo o npm run verify falla.
   - Si tras 3 intentos no consigue resolver el fallo, reporta el diagnóstico y pide intervención.
 
+
   Formato de respuesta:
   - Tests ejecutados y resultado.
   - Errores encontrados (extracto relevante).
@@ -40,3 +41,12 @@ description: |
   - Resultado tras re-ejecutar tests.
   - Validación final (npm run verify).
   - Resumen de cambios y justificación.
+
+tools:
+  - functions.run_in_terminal # Ejecutar npm test, npm run test:e2e, npm run verify
+  - functions.get_errors # Obtener errores de compilación/lint
+  - functions.read_file # Leer archivos de tests, servicios, controladores, DTOs
+  - functions.apply_patch # Aplicar fixes mínimos
+  - functions.get_changed_files # Revisar archivos modificados tras un fix
+  - functions.test_failure # Obtener detalles de fallos recientes en tests
+  - functions.manage_todo_list # Planificar y marcar avance en depuración de tests
