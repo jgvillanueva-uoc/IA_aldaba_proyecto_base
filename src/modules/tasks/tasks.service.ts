@@ -205,12 +205,4 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
   }
-
-  /**
-   * Returns a status string to validate module wiring in early phases.
-   * @returns Informational string confirming module and repository wiring.
-   */
-  public getModuleStatus(): string {
-    return 'Tasks module ready with repository port';
-  }
 }

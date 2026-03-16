@@ -82,13 +82,4 @@ export class TasksController {
   public async deleteTask(@Param('id') id: string): Promise<void> {
     await this.tasksService.deleteTask(id);
   }
-
-  /**
-   * Provides a minimal endpoint to validate module mounting.
-   * @returns Module readiness message.
-   */
-  @Get('health')
-  public getHealth(): string {
-    return this.tasksService.getModuleStatus();
-  }
 }

@@ -132,6 +132,106 @@ async function waitForTimestampTick(): Promise<void> {
 }
 
 describe('Tasks listing (e2e)', () => {
+  describe('Tasks CRUD endpoints (e2e)', () => {
+    let task: TaskResponse;
+
+    beforeEach(async () => {
+      task = await createTask(app, 'crud test');
+    });
+
+    it('creates a task (POST /tasks)', async () => {
+      const response = await request(getHttpServer(app))
+        .post('/tasks')
+        .send({ title: 'new task', description: 'desc' })
+        .expect(201);
+      expect(response.body).toMatchObject({
+        title: 'new task',
+        description: 'desc',
+        status: 'TODO',
+      });
+      expect(response.body.id).toBeDefined();
+    });
+
+    it('gets a task by id (GET /tasks/:id)', async () => {
+      const response = await request(getHttpServer(app))
+        .get(`/tasks/${task.id}`)
+        .expect(200);
+      expect(response.body).toMatchObject({ id: task.id, title: task.title });
+    });
+
+    it('updates a task (PATCH /tasks/:id)', async () => {
+      const response = await request(getHttpServer(app))
+        .patch(`/tasks/${task.id}`)
+        .send({ title: 'updated', impact: 5, confidence: 5, effort: 5 })
+        .expect(200);
+      expect(response.body.title).toBe('updated');
+      expect(response.body.impact).toBe(5);
+      expect(response.body.iceScore).toBe(50);
+      expect(response.body.iceSource).toBe('MANUAL');
+    });
+
+    it('deletes a task (DELETE /tasks/:id)', async () => {
+      await request(getHttpServer(app)).delete(`/tasks/${task.id}`).expect(204);
+      await request(getHttpServer(app)).get(`/tasks/${task.id}`).expect(404);
+    });
+
+    it('returns 404 for non-existent task', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      await request(getHttpServer(app)).get(`/tasks/${fakeId}`).expect(404);
+      await request(getHttpServer(app))
+        .patch(`/tasks/${fakeId}`)
+        .send({ title: 'xxx' })
+        .expect(404);
+      await request(getHttpServer(app)).delete(`/tasks/${fakeId}`).expect(404);
+    });
+  });
+  describe('Manual ICE DTO validation (e2e)', () => {
+    let task: TaskResponse;
+
+    beforeEach(async () => {
+      task = await createTask(app, 'dto validation');
+    });
+
+    it('rejects values below 1 or above 10', async () => {
+      await request(getHttpServer(app))
+        .post(`/tasks/${task.id}/ice/manual`)
+        .send({ impact: 0, confidence: 11, effort: 5 })
+        .expect(400)
+        .expect(({ body }) => {
+          expect(body.message).toEqual(expect.any(String));
+          expect(body.message).toContain('impact must not be less than 1');
+          expect(body.message).toContain(
+            'confidence must not be greater than 10',
+          );
+        });
+    });
+
+    it('rejects missing required fields', async () => {
+      await request(getHttpServer(app))
+        .post(`/tasks/${task.id}/ice/manual`)
+        .send({ impact: 5 })
+        .expect(400)
+        .expect(({ body }) => {
+          expect(body.message).toEqual(expect.any(String));
+          expect(body.message).toMatch(/confidence/);
+          expect(body.message).toMatch(/effort/);
+        });
+    });
+
+    it('rejects non-integer values', async () => {
+      await request(getHttpServer(app))
+        .post(`/tasks/${task.id}/ice/manual`)
+        .send({ impact: 5.5, confidence: 'high', effort: 3 })
+        .expect(400)
+        .expect(({ body }) => {
+          expect(body.message).toEqual(expect.any(String));
+          expect(body.message).toContain('impact must be an integer number');
+          expect(body.message).toContain(
+            'confidence must be an integer number',
+          );
+        });
+    });
+  });
   let app: INestApplication;
   let prismaService: PrismaService;
   let fetchMock: FetchMock;
