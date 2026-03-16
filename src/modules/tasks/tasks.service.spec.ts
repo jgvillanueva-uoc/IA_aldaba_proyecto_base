@@ -4,6 +4,27 @@ import { AiService } from '../ai/ai.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('TasksService', () => {
+  it('should list tasks by priority desc', async () => {
+    const tasks = [
+      { id: '1', iceScore: 100, createdAt: new Date('2024-01-01'), id: '1' },
+      { id: '2', iceScore: 50, createdAt: new Date('2024-01-02'), id: '2' },
+    ];
+    mockRepo.findAllByPriority = jest.fn().mockResolvedValue(tasks);
+    const result = await service.listTasksByPriority('desc');
+    expect(result).toEqual(tasks);
+    expect(mockRepo.findAllByPriority).toHaveBeenCalledWith('desc');
+  });
+
+  it('should list tasks by priority asc', async () => {
+    const tasks = [
+      { id: '2', iceScore: 50, createdAt: new Date('2024-01-02'), id: '2' },
+      { id: '1', iceScore: 100, createdAt: new Date('2024-01-01'), id: '1' },
+    ];
+    mockRepo.findAllByPriority = jest.fn().mockResolvedValue(tasks);
+    const result = await service.listTasksByPriority('asc');
+    expect(result).toEqual(tasks);
+    expect(mockRepo.findAllByPriority).toHaveBeenCalledWith('asc');
+  });
   let service: TasksService;
   let mockRepo: any;
   let mockIce: any;

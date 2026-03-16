@@ -67,6 +67,10 @@ async function createTestApplication(): Promise<{
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) => {
+        const messages = errors.map(e => Object.values(e.constraints ?? {}).join(', ')).join('; ');
+        return new (require('@nestjs/common').BadRequestException)(messages);
+      },
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -132,6 +136,69 @@ async function waitForTimestampTick(): Promise<void> {
 }
 
 describe('Tasks listing (e2e)', () => {
+  describe('Tasks priority endpoint (e2e)', () => {
+    it('returns tasks ordered by iceScore desc (default)', async () => {
+      const t1 = await createTask(app, 't1');
+      await waitForTimestampTick();
+      const t2 = await createTask(app, 't2');
+      await applyManualIce(app, t1.id, 5, 5, 5); // iceScore 125
+      await applyManualIce(app, t2.id, 10, 10, 1); // iceScore 1000
+      const response = await request(getHttpServer(app))
+        .get('/tasks/priority')
+        .expect(200);
+      const ids = response.body.map((task: TaskResponse) => task.id);
+      expect(ids).toEqual([t2.id, t1.id]);
+    });
+
+    it('returns tasks ordered by iceScore asc', async () => {
+      const t1 = await createTask(app, 't1');
+      await waitForTimestampTick();
+      const t2 = await createTask(app, 't2');
+      await applyManualIce(app, t1.id, 5, 5, 5); // iceScore 125
+      await applyManualIce(app, t2.id, 10, 10, 1); // iceScore 1000
+      const response = await request(getHttpServer(app))
+        .get('/tasks/priority?order=asc')
+        .expect(200);
+      const ids = response.body.map((task: TaskResponse) => task.id);
+      expect(ids).toEqual([t1.id, t2.id]);
+    });
+
+    it('orders ties by createdAt asc', async () => {
+      const t1 = await createTask(app, 'tie1');
+      await waitForTimestampTick();
+      const t2 = await createTask(app, 'tie2');
+      await applyManualIce(app, t1.id, 6, 6, 6); // iceScore 216
+      await applyManualIce(app, t2.id, 6, 6, 6); // iceScore 216
+      const response = await request(getHttpServer(app))
+        .get('/tasks/priority?order=asc')
+        .expect(200);
+      const ids = response.body.map((task: TaskResponse) => task.id);
+      expect(ids).toEqual([t1.id, t2.id]);
+    });
+
+    it('returns 400 for invalid order param', async () => {
+      await request(getHttpServer(app))
+        .get('/tasks/priority?order=invalid')
+        .expect(400)
+        .expect(({ body }) => {
+          expect(body.message).toContain(
+            'order must be one of the following values',
+          );
+        });
+    });
+    it('puts tasks with null iceScore at the end', async () => {
+      const t1 = await createTask(app, 'null1');
+      await waitForTimestampTick();
+      const t2 = await createTask(app, 'null2');
+      await applyManualIce(app, t2.id, 10, 10, 1); // iceScore 1000
+      const response = await request(getHttpServer(app))
+        .get('/tasks/priority?order=desc')
+        .expect(200);
+      const ids = response.body.map((task: TaskResponse) => task.id);
+      expect(ids).toEqual([t2.id, t1.id]);
+      expect(response.body[1].iceScore).toBeNull();
+    });
+  });
   describe('Tasks CRUD endpoints (e2e)', () => {
     let task: TaskResponse;
 

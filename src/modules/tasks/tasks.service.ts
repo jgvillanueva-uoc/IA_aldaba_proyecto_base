@@ -17,6 +17,16 @@ import type { ManualIceDto } from './dto/manual-ice.dto';
 @Injectable()
 export class TasksService {
   /**
+   * Lists tasks ordered by ICE priority (iceScore).
+   * @param order Order direction ('asc' | 'desc'). Defaults to 'desc'.
+   * @returns List of tasks ordered by priority.
+   */
+  public async listTasksByPriority(
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<TaskRecord[]> {
+    return this.taskRepositoryPort.findAllByPriority(order);
+  }
+  /**
    * Creates TasksService with repository and domain dependencies.
    * @param taskRepositoryPort Abstract repository for task persistence.
    * @param aiService Application service for external AI estimation.

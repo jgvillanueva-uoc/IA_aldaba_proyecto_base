@@ -12,6 +12,8 @@ import {
   Patch,
   Post,
   Query,
+  ValidationPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import type { TaskRecord } from './ports/task-repository.port';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -21,6 +23,21 @@ import { TasksService } from './tasks.service';
 
 @Controller('tasks')
 export class TasksController {
+    @Get('priority')
+    public listTasksByPriority(
+      @Query(new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        exceptionFactory: (errors) => {
+          const messages = errors.map(e => Object.values(e.constraints ?? {}).join(', ')).join('; ');
+          return new BadRequestException(messages);
+        },
+      })) queryDto: import('./dto/priority-tasks-query.dto').PriorityTasksQueryDto,
+    ): Promise<TaskRecord[]> {
+      const order = queryDto.order ?? 'desc';
+      return this.tasksService.listTasksByPriority(order);
+    }
   /**
    * Injects task application service.
    * @param tasksService Service that orchestrates task use cases.
@@ -48,6 +65,7 @@ export class TasksController {
   ): Promise<TaskRecord[]> {
     return this.tasksService.listTasks(queryDto.sort);
   }
+
 
   /**
    * Gets one task by identifier.

@@ -15,6 +15,23 @@ import { PrismaService } from './prisma.service';
 @Injectable()
 export class PrismaTaskRepository implements TaskRepositoryPort {
   /**
+   * Lists tasks ordered by ICE priority (iceScore) with direction and stable tie-breakers.
+   * @param order 'asc' | 'desc' direction.
+   * @returns Task list ordered by priority.
+   */
+  public async findAllByPriority(order: 'asc' | 'desc'): Promise<TaskRecord[]> {
+    // Primero tareas con iceScore no nulo, luego nulo
+    const tasks = await this.prismaService.task.findMany({
+      orderBy: [{ iceScore: order }, { createdAt: 'asc' }, { id: 'asc' }],
+    });
+    // Separar nulls al final
+    const withScore = tasks.filter((t) => t.iceScore !== null);
+    const withoutScore = tasks.filter((t) => t.iceScore === null);
+    return [...withScore, ...withoutScore].map((task) =>
+      this.toTaskRecord(task),
+    );
+  }
+  /**
    * Injects low-level Prisma service.
    * @param prismaService Infrastructure service for Prisma access.
    */

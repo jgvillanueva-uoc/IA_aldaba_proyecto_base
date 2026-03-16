@@ -59,6 +59,13 @@ export interface TaskRepositoryPort {
   findAll(sort?: ListTasksSort): Promise<TaskRecord[]>;
 
   /**
+   * Lists tasks ordered by ICE priority (iceScore) with direction and stable tie-breakers.
+   * @param order 'asc' | 'desc' direction.
+   * @returns Task list ordered by priority.
+   */
+  findAllByPriority(order: 'asc' | 'desc'): Promise<TaskRecord[]>;
+
+  /**
    * Updates a task by identifier.
    * @param id Task identifier.
    * @param updateData Partial task payload to persist.
