@@ -16,30 +16,31 @@ tags:
     description: Operaciones de estimacion y asignacion ICE
 
 paths:
-  /tasks:
-      /tasks/priority:
-        get:
-          tags: [Tasks]
-          summary: Listar tareas ordenadas por prioridad (ICE)
-          parameters:
-            - in: query
-              name: order
-              required: false
+  /tasks/priority:
+    get:
+      tags: [Tasks]
+      summary: Listar tareas ordenadas por prioridad (ICE)
+      parameters:
+        - in: query
+          name: order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Orden de prioridad: ascendente o descendente (default: desc)
+      responses:
+        '200':
+          description: Lista de tareas ordenadas por ICE
+          content:
+            application/json:
               schema:
-                type: string
-                enum: [asc, desc]
-              description: Orden de prioridad: ascendente o descendente (default: desc)
-          responses:
-            '200':
-              description: Lista de tareas ordenadas por ICE
-              content:
-                application/json:
-                  schema:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Task'
-            '400':
-              $ref: '#/components/responses/ValidationError'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /tasks:
     post:
       tags: [Tasks]
       summary: Crear tarea

@@ -6,6 +6,7 @@
         "git pull": true,
         "git push": true,
         "git add": true,
-        "git commit": true
+        "git commit": true,
+        "mkdir": true
     }
 }
