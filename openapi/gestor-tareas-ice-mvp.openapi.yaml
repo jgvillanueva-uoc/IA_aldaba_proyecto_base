@@ -1,44 +1,35 @@
 openapi: 3.0.3
 info:
-  title: API Gestor de Tareas ICE (MVP)
+  title: Gestor ICE API
   version: 1.0.0
   description: >-
-    Especificacion funcional minima para CRUD de tareas, asignacion ICE manual,
-    estimacion ICE por IA remota, y listado priorizado por ICE.
+    OpenAPI manual del MVP de Gestor ICE. Describe CRUD de tareas,
+    priorizacion por ICE, asignacion manual de ICE y estimacion por IA.
 servers:
   - url: http://localhost:3000
     description: Local
 
 tags:
+  - name: App
+    description: Endpoint raiz de verificacion
   - name: Tasks
     description: Operaciones CRUD y listado de tareas
   - name: ICE
     description: Operaciones de estimacion y asignacion ICE
 
 paths:
-  /tasks/priority:
+  /:
     get:
-      tags: [Tasks]
-      summary: Listar tareas ordenadas por prioridad (ICE)
-      parameters:
-        - in: query
-          name: order
-          required: false
-          schema:
-            type: string
-            enum: [asc, desc]
-          description: Orden de prioridad: ascendente o descendente (default: desc)
+      tags: [App]
+      summary: Obtener mensaje base de la aplicacion
       responses:
         '200':
-          description: Lista de tareas ordenadas por ICE
+          description: Mensaje base
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Task'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                type: string
+              example: Hello World!
 
   /tasks:
     post:
@@ -50,6 +41,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaskRequest'
+            example:
+              title: Implement priority endpoint
+              description: Expose a route to list tasks ordered by ICE score
+              status: TODO
       responses:
         '201':
           description: Tarea creada
@@ -80,6 +75,33 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /tasks/priority:
+    get:
+      tags: [Tasks]
+      summary: Listar tareas ordenadas por prioridad ICE
+      parameters:
+        - in: query
+          name: order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Orden de prioridad por iceScore
+      responses:
+        '200':
+          description: Lista de tareas ordenadas por ICE
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
   /tasks/{id}:
     get:
@@ -108,6 +130,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateTaskRequest'
+            example:
+              status: DONE
+              impact: 9
+              confidence: 8
+              effort: 3
       responses:
         '200':
           description: Tarea actualizada
@@ -143,6 +170,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ManualIceRequest'
+            example:
+              impact: 8
+              confidence: 7
+              effort: 3
       responses:
         '200':
           description: ICE manual aplicado
@@ -158,7 +189,7 @@ paths:
   /tasks/{id}/ice/estimate:
     post:
       tags: [ICE]
-      summary: Estimar ICE con IA remota usando description
+      summary: Estimar ICE con IA usando description
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -181,8 +212,8 @@ components:
       required: true
       schema:
         type: string
-        format: uuid
-      description: Identificador unico de la tarea
+      description: Identificador de la tarea
+      example: cm8x123task002
 
   responses:
     ValidationError:
@@ -194,7 +225,9 @@ components:
           example:
             statusCode: 400
             error: VALIDATION_ERROR
-            message: title must be between 3 and 120 characters
+            message: order must be one of the following values: asc, desc
+            timestamp: '2026-03-17T10:40:00.000Z'
+            path: /tasks/priority?order=invalid
 
     NotFoundError:
       description: Recurso no encontrado
@@ -206,6 +239,8 @@ components:
             statusCode: 404
             error: NOT_FOUND
             message: Task not found
+            timestamp: '2026-03-17T10:41:00.000Z'
+            path: /tasks/cm8x999missing
 
     AiUnavailableError:
       description: Proveedor de IA no disponible o respuesta invalida
@@ -216,7 +251,9 @@ components:
           example:
             statusCode: 502
             error: AI_UNAVAILABLE
-            message: Timeout or invalid AI payload
+            message: Gemini API key is not configured
+            timestamp: '2026-03-17T10:42:00.000Z'
+            path: /tasks/cm8x123task002/ice/estimate
 
   schemas:
     Task:
@@ -236,7 +273,7 @@ components:
       properties:
         id:
           type: string
-          format: uuid
+          example: cm8x123task002
         title:
           type: string
           minLength: 3
@@ -244,44 +281,32 @@ components:
         description:
           type: string
           maxLength: 200
-        aiDescription:
-          type: string
-          maxLength: 200
-          nullable: true
         status:
           type: string
           enum: [TODO, IN_PROGRESS, DONE]
-        dueDate:
-          type: string
-          format: date-time
-          nullable: true
         impact:
           type: integer
+          nullable: true
           minimum: 1
           maximum: 10
         confidence:
           type: integer
+          nullable: true
           minimum: 1
           maximum: 10
         effort:
           type: integer
+          nullable: true
           minimum: 1
           maximum: 10
         iceScore:
           type: integer
-          minimum: 0
-          maximum: 100
+          nullable: true
+          minimum: 1
         iceSource:
           type: string
-          enum: [manual, ai]
-        aiJustification:
-          type: string
-          maxLength: 200
           nullable: true
-        lastAiEstimatedAt:
-          type: string
-          format: date-time
-          nullable: true
+          enum: [MANUAL, AI]
         createdAt:
           type: string
           format: date-time
@@ -303,11 +328,6 @@ components:
         status:
           type: string
           enum: [TODO, IN_PROGRESS, DONE]
-          default: TODO
-        dueDate:
-          type: string
-          format: date-time
-          nullable: true
 
     UpdateTaskRequest:
       type: object
@@ -322,10 +342,6 @@ components:
         status:
           type: string
           enum: [TODO, IN_PROGRESS, DONE]
-        dueDate:
-          type: string
-          format: date-time
-          nullable: true
         impact:
           type: integer
           minimum: 1
@@ -355,18 +371,20 @@ components:
           type: integer
           minimum: 1
           maximum: 10
-        aiJustification:
-          type: string
-          maxLength: 200
-          nullable: true
 
     ErrorResponse:
       type: object
-      required: [statusCode, error, message]
+      required: [statusCode, error, message, timestamp, path]
       properties:
         statusCode:
           type: integer
         error:
           type: string
+          enum: [VALIDATION_ERROR, NOT_FOUND, AI_UNAVAILABLE, INTERNAL_ERROR]
         message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        path:
           type: string
