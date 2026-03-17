@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "cwd": "${workspaceFolder}",
+        "timeout": 60,
+        "command": "node .github/hooks/scripts/staged-lint-format.mjs"
+      }
+    ]
+  }
+}
