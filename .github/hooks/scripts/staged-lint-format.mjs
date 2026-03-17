@@ -22,7 +22,12 @@ if (gitCheck.status !== 0) {
   process.exit(0);
 }
 
-const staged = runCapture('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR']);
+const staged = runCapture('git', [
+  'diff',
+  '--cached',
+  '--name-only',
+  '--diff-filter=ACMR',
+]);
 if (staged.status !== 0) {
   console.error('[pre-commit-lite] failed: cannot list staged files');
   process.exit(2);
@@ -38,7 +43,9 @@ if (stagedFiles.length === 0) {
   process.exit(0);
 }
 
-const eslintTargets = stagedFiles.filter((file) => /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file));
+const eslintTargets = stagedFiles.filter((file) =>
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file),
+);
 const prettierTargets = stagedFiles.filter((file) =>
   /\.(ts|tsx|js|jsx|mjs|cjs|json|md|yml|yaml)$/.test(file),
 );
@@ -46,8 +53,16 @@ const prettierTargets = stagedFiles.filter((file) =>
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 if (eslintTargets.length > 0) {
-  console.log(`[pre-commit-lite] eslint --fix on ${eslintTargets.length} staged file(s)`);
-  const lintResult = run(npmBin, ['exec', '--', 'eslint', '--fix', ...eslintTargets]);
+  console.log(
+    `[pre-commit-lite] eslint --fix on ${eslintTargets.length} staged file(s)`,
+  );
+  const lintResult = run(npmBin, [
+    'exec',
+    '--',
+    'eslint',
+    '--fix',
+    ...eslintTargets,
+  ]);
   if (lintResult.status !== 0) {
     console.error('[pre-commit-lite] failed: eslint reported errors');
     process.exit(2);
@@ -55,19 +70,31 @@ if (eslintTargets.length > 0) {
 }
 
 if (prettierTargets.length > 0) {
-  console.log(`[pre-commit-lite] prettier --write on ${prettierTargets.length} staged file(s)`);
-  const prettierResult = run(npmBin, ['exec', '--', 'prettier', '--write', ...prettierTargets]);
+  console.log(
+    `[pre-commit-lite] prettier --write on ${prettierTargets.length} staged file(s)`,
+  );
+  const prettierResult = run(npmBin, [
+    'exec',
+    '--',
+    'prettier',
+    '--write',
+    ...prettierTargets,
+  ]);
   if (prettierResult.status !== 0) {
     console.error('[pre-commit-lite] failed: prettier reported errors');
     process.exit(2);
   }
 }
 
-const filesToRestage = Array.from(new Set([...eslintTargets, ...prettierTargets]));
+const filesToRestage = Array.from(
+  new Set([...eslintTargets, ...prettierTargets]),
+);
 if (filesToRestage.length > 0) {
   const addResult = run('git', ['add', '--', ...filesToRestage]);
   if (addResult.status !== 0) {
-    console.error('[pre-commit-lite] failed: could not re-stage formatted files');
+    console.error(
+      '[pre-commit-lite] failed: could not re-stage formatted files',
+    );
     process.exit(2);
   }
 }

@@ -1,4 +1,5 @@
 # Diagrama de Flujo Funcional
+
 ## Gestor de Tareas ICE (Backend NestJS + IA remota)
 
 Este diagrama describe los procesos principales del backend para CRUD de tareas, estimacion ICE manual y por IA, priorizacion, y manejo de errores de la API remota.
@@ -75,6 +76,7 @@ flowchart TD
 ```
 
 ## Notas funcionales
+
 - El calculo de `iceScore` se aplica siempre que cambien `impact`, `confidence` o `effort`.
 - La integracion con IA se encapsula para poder reemplazar proveedor sin afectar el modulo ICE.
 - Los errores de IA externa se transforman en error de dominio controlado (`AI_UNAVAILABLE`).

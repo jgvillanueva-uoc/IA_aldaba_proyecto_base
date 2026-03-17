@@ -1,7 +1,7 @@
 ---
 name: git-commit
-description: "Use when: writing a git commit message, redacting a commit, proposing a commit, validating a commit message, creating a branch name, staging changes, following Conventional Commits. Applies project-specific git conventions for Gestor ICE: types, scopes, subject rules, footer references, branch naming, and guided flow when context is missing."
-argument-hint: "Describe the change (in any language) or paste the diff"
+description: 'Use when: writing a git commit message, redacting a commit, proposing a commit, validating a commit message, creating a branch name, staging changes, following Conventional Commits. Applies project-specific git conventions for Gestor ICE: types, scopes, subject rules, footer references, branch naming, and guided flow when context is missing.'
+argument-hint: 'Describe the change (in any language) or paste the diff'
 ---
 
 # git-commit — Commit Message & Branch Workflow
@@ -13,6 +13,7 @@ Generates, validates, and corrects git commit messages and branch names followin
 ## When to Use
 
 Invoke this skill whenever you need to:
+
 - Write or review a commit message.
 - Name a new issue branch.
 - Validate an existing commit subject.
@@ -44,19 +45,19 @@ If the diff or changed files are available in context, infer scope automatically
 
 ### Rules — Subject line
 
-| Rule | Detail |
-|---|---|
-| Max length | 72 characters |
-| Case | Lowercase — never capitalise the first letter |
-| Verb | Imperative mood ("add", "fix") — never past tense |
-| No period | Do not end with `.` |
-| Language | Always **English**, even if the description was given in Spanish |
+| Rule       | Detail                                                           |
+| ---------- | ---------------------------------------------------------------- |
+| Max length | 72 characters                                                    |
+| Case       | Lowercase — never capitalise the first letter                    |
+| Verb       | Imperative mood ("add", "fix") — never past tense                |
+| No period  | Do not end with `.`                                              |
+| Language   | Always **English**, even if the description was given in Spanish |
 
 ### Rules — Body (optional)
 
 - Separated from subject by a blank line.
 - Lines max 72 characters.
-- Explain *what* and *why*, not *how*.
+- Explain _what_ and _why_, not _how_.
 
 ### Rules — Footer (optional)
 
@@ -68,18 +69,18 @@ If the diff or changed files are available in context, infer scope automatically
 
 ## Valid Types
 
-| Type | When to use |
-|---|---|
-| `feat` | New feature visible to consumers |
-| `fix` | Bug fix |
+| Type       | When to use                                   |
+| ---------- | --------------------------------------------- |
+| `feat`     | New feature visible to consumers              |
+| `fix`      | Bug fix                                       |
 | `refactor` | Internal restructure without behaviour change |
-| `test` | Add or modify tests |
-| `chore` | Maintenance, tooling, config, CI |
-| `docs` | Documentation only |
-| `style` | Formatting, lint — zero logic change |
-| `perf` | Performance improvement |
-| `build` | Build system or dependency changes |
-| `ci` | Pipeline configuration |
+| `test`     | Add or modify tests                           |
+| `chore`    | Maintenance, tooling, config, CI              |
+| `docs`     | Documentation only                            |
+| `style`    | Formatting, lint — zero logic change          |
+| `perf`     | Performance improvement                       |
+| `build`    | Build system or dependency changes            |
+| `ci`       | Pipeline configuration                        |
 
 ---
 
@@ -87,17 +88,17 @@ If the diff or changed files are available in context, infer scope automatically
 
 Derive the scope from the primary files changed:
 
-| Changed path | Scope |
-|---|---|
-| `src/modules/tasks/**` | `tasks` |
-| `src/modules/ice/**` | `ice` |
-| `src/modules/ai/**` | `ai` |
-| `src/infrastructure/**` | `persistence` |
-| `src/config/**` | `config` |
-| `src/common/**` | `common` |
+| Changed path                         | Scope                                 |
+| ------------------------------------ | ------------------------------------- |
+| `src/modules/tasks/**`               | `tasks`                               |
+| `src/modules/ice/**`                 | `ice`                                 |
+| `src/modules/ai/**`                  | `ai`                                  |
+| `src/infrastructure/**`              | `persistence`                         |
+| `src/config/**`                      | `config`                              |
+| `src/common/**`                      | `common`                              |
 | `.github/**`, `*.yml`, `*.yaml` (CI) | `ci` → type should be `ci` or `chore` |
-| `design/**`, `README.md`, `*.md` | omit scope → type must be `docs` |
-| Multiple unrelated modules | omit scope |
+| `design/**`, `README.md`, `*.md`     | omit scope → type must be `docs`      |
+| Multiple unrelated modules           | omit scope                            |
 
 Scope is **optional**. Omit it rather than inventing one.
 
@@ -114,6 +115,7 @@ Issue branches must be created from `dev`:
 Valid types for branches: `feature`, `fix`, `chore`, `hotfix`.
 
 Examples:
+
 ```
 feature/1-persistence-port-adapter
 fix/2-tasks-crud-404
@@ -121,6 +123,7 @@ chore/6-quality-robustness
 ```
 
 Rules:
+
 - All lowercase, hyphens as separators.
 - Short description: 2–5 words, no articles.
 - Always include the issue id.
@@ -180,10 +183,10 @@ Before confirming a message, verify:
 
 ## Common Mistakes to Correct
 
-| Wrong | Correct |
-|---|---|
-| `feat(tasks): Added task creation` | `feat(tasks): add task creation` |
-| `Fix: Task not found returns 500` | `fix(tasks): return 404 when task is not found` |
-| `chore: Updated deps and linting and ci and config` | Split into focused commits or omit verbose list |
-| `feat: implement the full CRUD for tasks and ice and ai` | `feat(tasks): implement task CRUD endpoints` |
-| `feat(src/modules/tasks): ...` | `feat(tasks): ...` (scope is the module name, not the path) |
+| Wrong                                                    | Correct                                                     |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| `feat(tasks): Added task creation`                       | `feat(tasks): add task creation`                            |
+| `Fix: Task not found returns 500`                        | `fix(tasks): return 404 when task is not found`             |
+| `chore: Updated deps and linting and ci and config`      | Split into focused commits or omit verbose list             |
+| `feat: implement the full CRUD for tasks and ice and ai` | `feat(tasks): implement task CRUD endpoints`                |
+| `feat(src/modules/tasks): ...`                           | `feat(tasks): ...` (scope is the module name, not the path) |

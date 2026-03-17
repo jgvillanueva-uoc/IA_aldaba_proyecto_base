@@ -1,7 +1,7 @@
 ---
 name: api-contract
-description: "Use when: adding an endpoint, removing a route, changing a DTO, fixing a contract, updating Swagger/OpenAPI, making unit or e2e tests pass for an endpoint. Enforces a complete end-to-end review: controller → DTOs → service → port/repository → Swagger → tests → final verification (lint, test, build)."
-argument-hint: "Endpoint o DTO afectado: añadir / quitar / cambiar / verificar"
+description: 'Use when: adding an endpoint, removing a route, changing a DTO, fixing a contract, updating Swagger/OpenAPI, making unit or e2e tests pass for an endpoint. Enforces a complete end-to-end review: controller → DTOs → service → port/repository → Swagger → tests → final verification (lint, test, build).'
+argument-hint: 'Endpoint o DTO afectado: añadir / quitar / cambiar / verificar'
 ---
 
 # api-contract — API Contract Verification & Change Workflow
@@ -47,67 +47,67 @@ Si los archivos son visibles en el contexto, infiere las respuestas sin pregunta
 
 Lee el handler de la ruta en `src/**/*.controller.ts`.
 
-| Pregunta | Problema si → |
-|---|---|
-| ¿El handler usa DTOs tipados para input y output? | Usa `any`, tipos inline o cast explícito |
-| ¿Los imports de DTOs son imports de módulo (no inline)? | `import(...)` inline dentro del decorador o parámetro |
-| ¿El handler delega en el servicio sin lógica propia? | Contiene queries, cálculos o acceso a repo directo |
+| Pregunta                                                                                         | Problema si →                                             |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| ¿El handler usa DTOs tipados para input y output?                                                | Usa `any`, tipos inline o cast explícito                  |
+| ¿Los imports de DTOs son imports de módulo (no inline)?                                          | `import(...)` inline dentro del decorador o parámetro     |
+| ¿El handler delega en el servicio sin lógica propia?                                             | Contiene queries, cálculos o acceso a repo directo        |
 | ¿Los decoradores Swagger (`@ApiResponse`, `@ApiQuery`, `@ApiParam`) están presentes y correctos? | Faltan, están desactualizados o no coinciden con la firma |
-| ¿El constructor está al principio de la clase y los métodos después? | Métodos antes del constructor |
-| ¿No hay rutas huérfanas (sin método de servicio correspondiente)? | Ruta definida pero sin servicio que la respalde |
+| ¿El constructor está al principio de la clase y los métodos después?                             | Métodos antes del constructor                             |
+| ¿No hay rutas huérfanas (sin método de servicio correspondiente)?                                | Ruta definida pero sin servicio que la respalde           |
 
 ### 1.2 DTOs
 
 Lee cada DTO referenciado por esa ruta en `src/**/*.dto.ts`.
 
-| Pregunta | Problema si → |
-|---|---|
+| Pregunta                                                            | Problema si →                                           |
+| ------------------------------------------------------------------- | ------------------------------------------------------- |
 | ¿Todas las propiedades de input tienen decorador `class-validator`? | Propiedad sin `@IsString`, `@IsOptional`, `@IsIn`, etc. |
-| ¿Todas las propiedades tienen tipo explícito (no `any`)? | Tipo implícito o `any` |
-| ¿Cada propiedad tiene `@ApiProperty` o `@ApiPropertyOptional`? | Falta decorador Swagger en algún campo |
-| ¿Los DTOs no exportados o no usados han sido eliminados? | DTO declarado pero sin referencias |
+| ¿Todas las propiedades tienen tipo explícito (no `any`)?            | Tipo implícito o `any`                                  |
+| ¿Cada propiedad tiene `@ApiProperty` o `@ApiPropertyOptional`?      | Falta decorador Swagger en algún campo                  |
+| ¿Los DTOs no exportados o no usados han sido eliminados?            | DTO declarado pero sin referencias                      |
 
 ### 1.3 Service
 
 Lee el método de servicio en `src/**/*.service.ts`.
 
-| Pregunta | Problema si → |
-|---|---|
-| ¿El método tiene tipos explícitos en parámetros y retorno? | `any`, tipos inferidos ambiguos, retorno sin tipo |
+| Pregunta                                                     | Problema si →                                                    |
+| ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| ¿El método tiene tipos explícitos en parámetros y retorno?   | `any`, tipos inferidos ambiguos, retorno sin tipo                |
 | ¿El método lanza excepciones concretas en errores esperados? | Retorna `null` / `undefined` silenciosamente, errores no tipados |
-| ¿La firma es consistente con lo que el controller espera? | El controller pasa parámetros que el servicio no acepta o ignora |
+| ¿La firma es consistente con lo que el controller espera?    | El controller pasa parámetros que el servicio no acepta o ignora |
 
 ### 1.4 Port / Repository
 
 Lee `src/**/ports/*.ts` y `src/infrastructure/persistence/**/*.ts` solo si la ruta toca persistencia.
 
-| Pregunta | Problema si → |
-|---|---|
-| ¿El método existe en el puerto (interfaz)? | El servicio llama a un método que no está declarado en el puerto |
-| ¿El adaptador Prisma implementa todos los métodos del puerto? | Método en interfaz sin implementación en el adaptador |
-| ¿El adaptador no propaga tipos Prisma al servicio? | Retorna `PrismaClient` o tipos crudos de Prisma fuera de la capa infra |
+| Pregunta                                                      | Problema si →                                                          |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| ¿El método existe en el puerto (interfaz)?                    | El servicio llama a un método que no está declarado en el puerto       |
+| ¿El adaptador Prisma implementa todos los métodos del puerto? | Método en interfaz sin implementación en el adaptador                  |
+| ¿El adaptador no propaga tipos Prisma al servicio?            | Retorna `PrismaClient` o tipos crudos de Prisma fuera de la capa infra |
 
 ### 1.5 Swagger / OpenAPI
 
 Lee `openapi/gestor-tareas-ice-mvp.openapi.yaml`.
 
-| Pregunta | Problema si → |
-|---|---|
-| ¿El path existe en el YAML al nivel correcto de indentación? | Path anidado dentro de otro path en lugar de ser hermano |
+| Pregunta                                                                | Problema si →                                                  |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| ¿El path existe en el YAML al nivel correcto de indentación?            | Path anidado dentro de otro path en lugar de ser hermano       |
 | ¿El método HTTP, parámetros y request body coinciden con el controller? | Método, parámetros o schema distintos a la implementación real |
-| ¿Los códigos de respuesta documentados son los que el controller emite? | Falta 400, 404 o 502; o hay códigos obsoletos |
-| ¿No hay paths obsoletos en el YAML que ya no existen en el controller? | Path documentado sin handler correspondiente |
+| ¿Los códigos de respuesta documentados son los que el controller emite? | Falta 400, 404 o 502; o hay códigos obsoletos                  |
+| ¿No hay paths obsoletos en el YAML que ya no existen en el controller?  | Path documentado sin handler correspondiente                   |
 
 ### 1.6 Tests
 
 Lee `src/**/*.spec.ts` y `test/**/*.e2e-spec.ts`.
 
-| Pregunta | Problema si → |
-|---|---|
-| ¿Existe al menos un test unitario para el método de servicio? | No hay `describe` / `it` que cubra ese método |
-| ¿Los mocks del repositorio reflejan la firma actual del puerto? | Mock con métodos que ya no existen o sin métodos nuevos |
-| ¿Existe al menos un test e2e para ese endpoint? | No hay test e2e para happy path ni para error esperado |
-| ¿Los tests e2e cubren: happy path, 400 (validación), 404 (si aplica)? | Solo hay happy path |
+| Pregunta                                                              | Problema si →                                           |
+| --------------------------------------------------------------------- | ------------------------------------------------------- |
+| ¿Existe al menos un test unitario para el método de servicio?         | No hay `describe` / `it` que cubra ese método           |
+| ¿Los mocks del repositorio reflejan la firma actual del puerto?       | Mock con métodos que ya no existen o sin métodos nuevos |
+| ¿Existe al menos un test e2e para ese endpoint?                       | No hay test e2e para happy path ni para error esperado  |
+| ¿Los tests e2e cubren: happy path, 400 (validación), 404 (si aplica)? | Solo hay happy path                                     |
 
 ---
 
@@ -151,6 +151,7 @@ Aplica las correcciones identificadas en Phase 2, una capa a la vez, en este ord
 7. **E2E tests** — añadir o corregir escenarios del endpoint.
 
 Reglas de corrección:
+
 - Mínimo cambio necesario. No refactorizar más allá del hallazgo.
 - No eliminar tests para quitar fallos; corregir el código o el mock.
 - No suprimir reglas de lint.
@@ -181,16 +182,16 @@ Si algún paso falla, volver a Phase 3 y corregir. Repetir hasta verde.
 
 ## Layer Map — Quick Reference
 
-| Cambio | Capas a tocar |
-|---|---|
-| Nuevo endpoint | Controller → DTO → Service → (Port si DB) → Swagger → Unit test → E2E test |
-| Quitar endpoint | Controller → Service → (Port si DB) → Swagger → Unit test → E2E test → Borrar DTOs huérfanos |
-| Cambiar request DTO | DTO → Controller (decorador) → Service (firma) → Swagger → Unit test → E2E test |
-| Cambiar response DTO | DTO → Controller (tipo retorno) → Service (tipo retorno) → Swagger → Unit test → E2E test |
-| Corregir contrato / status code | Controller → Swagger → E2E test |
-| Solo actualizar Swagger | Decoradores controller → YAML |
-| Arreglar e2e roto | E2E test → Controller → DTO → Service → (Port si DB) |
-| Auditoría / verificación | Phase 1 → Phase 2 → Phase 3 solo si hay hallazgos → Phase 4 |
+| Cambio                          | Capas a tocar                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------------- |
+| Nuevo endpoint                  | Controller → DTO → Service → (Port si DB) → Swagger → Unit test → E2E test                   |
+| Quitar endpoint                 | Controller → Service → (Port si DB) → Swagger → Unit test → E2E test → Borrar DTOs huérfanos |
+| Cambiar request DTO             | DTO → Controller (decorador) → Service (firma) → Swagger → Unit test → E2E test              |
+| Cambiar response DTO            | DTO → Controller (tipo retorno) → Service (tipo retorno) → Swagger → Unit test → E2E test    |
+| Corregir contrato / status code | Controller → Swagger → E2E test                                                              |
+| Solo actualizar Swagger         | Decoradores controller → YAML                                                                |
+| Arreglar e2e roto               | E2E test → Controller → DTO → Service → (Port si DB)                                         |
+| Auditoría / verificación        | Phase 1 → Phase 2 → Phase 3 solo si hay hallazgos → Phase 4                                  |
 
 ---
 

@@ -1,4 +1,5 @@
 # Plan de Implementación
+
 ## Gestor ICE MVP (NestJS + TypeScript)
 
 Fecha: 11 de marzo de 2026
@@ -6,6 +7,7 @@ Fecha: 11 de marzo de 2026
 ## 1. Objetivo del plan
 
 Definir una hoja de ruta ejecutable para implementar el MVP del Gestor ICE en NestJS, minimizando riesgo y manteniendo consistencia con:
+
 - Arquitectura modular definida.
 - Contrato OpenAPI.
 - Reglas de negocio ICE.
@@ -15,12 +17,14 @@ Este plan no incluye código, solo fases, tareas, entregables y criterios de sal
 ## 2. Alcance del plan
 
 Incluye:
+
 - Preparación del proyecto y convenciones.
 - Implementación incremental por capacidades (CRUD, ICE manual, IA, robustez).
 - Validaciones, errores y testing mínimo.
 - Preparación para persistencia intercambiable (puerto + adaptador inicial Prisma/SQLite).
 
 No incluye:
+
 - Frontend.
 - Despliegue cloud productivo.
 - Observabilidad avanzada.
@@ -54,9 +58,11 @@ Este bloque concentra exclusivamente la ejecución técnica del MVP.
 ### 5.1 Fase 0: Arranque técnico y estructura base
 
 Objetivo:
+
 - Dejar el esqueleto listo con estructura modular y convenciones de proyecto.
 
 Tareas:
+
 1. Inicializar proyecto NestJS con TypeScript.
 2. Crear estructura de módulos: tasks, ice, ai.
 3. Crear estructura de infraestructura para persistencia con adaptador Prisma.
@@ -67,14 +73,17 @@ Tareas:
 5. Configurar ValidationPipe global y filtro global de excepciones.
 
 Entregables:
+
 - Proyecto compila y arranca.
 - Estructura de carpetas alineada con arquitectura.
 - Configuración de entorno validada al inicio.
 
 Criterio de salida:
+
 - El servicio inicia sin errores con entorno mínimo.
 
 Criterios de validación:
+
 1. La aplicación inicia con `npm run start:dev` sin errores de bootstrap.
 2. La validación de variables de entorno falla de forma controlada si falta una variable obligatoria.
 3. El filtro global de excepciones responde el formato estándar (`statusCode`, `error`, `message`).
@@ -83,9 +92,11 @@ Criterios de validación:
 ### 5.2 Fase 1: Contrato de persistencia y adaptador inicial
 
 Objetivo:
+
 - Preparar base de datos y abstraer persistencia para evitar acoplamiento futuro.
 
 Tareas:
+
 1. Definir TaskRepositoryPort con operaciones mínimas:
    - create
    - findById
@@ -98,14 +109,17 @@ Tareas:
 5. Configurar inyección de dependencia en TasksModule para usar el puerto.
 
 Entregables:
+
 - Puerto de persistencia definido.
 - Adaptador Prisma/SQLite operativo.
 - Migración inicial aplicada.
 
 Criterio de salida:
+
 - Se puede crear y consultar una tarea a través del repositorio sin exponer Prisma fuera del adaptador.
 
 Criterios de validación:
+
 1. `TasksService` depende del puerto de repositorio, no de `PrismaService`.
 2. El adaptador Prisma implementa todas las operaciones definidas en el contrato.
 3. La migración inicial se aplica correctamente y crea la estructura esperada.
@@ -114,9 +128,11 @@ Criterios de validación:
 ### 5.3 Fase 2: CRUD de tareas (sin ICE avanzado)
 
 Objetivo:
+
 - Entregar endpoints CRUD base de Task según OpenAPI.
 
 Tareas:
+
 1. Implementar DTOs CreateTask, UpdateTask, ListTasksQuery.
 2. Implementar TasksController y TasksService para:
    - POST /tasks
@@ -131,13 +147,16 @@ Tareas:
 4. Estandarizar errores 400 y 404 con formato común.
 
 Entregables:
+
 - CRUD funcional completo.
 - Manejo de validación y not found consistente.
 
 Criterio de salida:
+
 - Todos los endpoints CRUD responden con los códigos esperados por OpenAPI.
 
 Criterios de validación:
+
 1. `POST /tasks` valida `title` y `description` según contrato.
 2. `GET /tasks/:id`, `PATCH /tasks/:id` y `DELETE /tasks/:id` devuelven 404 cuando no existe la tarea.
 3. `PATCH /tasks/:id` permite actualización parcial sin romper campos no enviados.
@@ -146,9 +165,11 @@ Criterios de validación:
 ### 5.4 Fase 3: Dominio ICE manual
 
 Objetivo:
+
 - Implementar reglas ICE en lógica pura y aplicación manual por endpoint.
 
 Tareas:
+
 1. Implementar IceService con:
    - validateRange
    - calculateScore
@@ -162,13 +183,16 @@ Tareas:
 4. Incorporar recalculo en PATCH cuando cambian campos ICE.
 
 Entregables:
+
 - Endpoint manual ICE funcional.
 - Recalculo automático en actualización parcial.
 
 Criterio de salida:
+
 - `iceScore` siempre consistente tras cambios manuales de ICE.
 
 Criterios de validación:
+
 1. `POST /tasks/:id/ice/manual` rechaza valores fuera de 1..10.
 2. El cálculo aplica exactamente la fórmula definida y retorna entero redondeado.
 3. `PATCH /tasks/:id` recalcula score cuando cambian `impact`, `confidence` o `effort`.
@@ -177,20 +201,25 @@ Criterios de validación:
 ### 5.5 Fase 4: Priorización por score ICE
 
 Objetivo:
+
 - Exponer listado priorizado por ICE.
 
 Tareas:
+
 1. Extender listTasks para soportar `sort=ice`.
 2. Resolver orden descendente por `iceScore` en repositorio.
 3. Asegurar fallback a orden por createdAt cuando no hay sort.
 
 Entregables:
+
 - GET /tasks?sort=ice operativo.
 
 Criterio de salida:
+
 - Listado priorizado devuelve tareas de mayor a menor score.
 
 Criterios de validación:
+
 1. `GET /tasks?sort=ice` ordena estrictamente en descendente por `iceScore`.
 2. `GET /tasks` sin query mantiene orden por defecto (createdAt).
 3. La ordenación se mantiene estable ante tareas con score iguales (criterio secundario documentado).
@@ -199,9 +228,11 @@ Criterios de validación:
 ### 5.6 Fase 5: Integración IA para estimación ICE
 
 Objetivo:
+
 - Integrar proveedor IA para estimar ICE desde description.
 
 Tareas:
+
 1. Implementar AiService como adaptador HTTP:
    - prompt JSON estricto
    - timeout configurable
@@ -217,12 +248,15 @@ Tareas:
 4. Mapear errores externos a `AI_UNAVAILABLE` (502).
 
 Entregables:
+
 - Flujo IA completo funcional con persistencia de sugerencia.
 
 Criterio de salida:
+
 - Estimación IA devuelve 200 en camino feliz y 502 en fallos controlados.
 
 Criterios de validación:
+
 1. `POST /tasks/:id/ice/estimate` devuelve 404 si la tarea no existe.
 2. En respuesta válida del proveedor IA, la tarea se actualiza con valores ICE, `iceScore`, `iceSource=ai` y metadatos IA.
 3. Si hay timeout o payload inválido, la API devuelve 502 con `AI_UNAVAILABLE`.
@@ -231,9 +265,11 @@ Criterios de validación:
 ### 5.7 Fase 6: Calidad mínima y robustez
 
 Objetivo:
+
 - Asegurar estabilidad del MVP antes de cierre.
 
 Tareas:
+
 1. Unit tests de IceService:
    - fórmula
    - redondeo
@@ -248,13 +284,16 @@ Tareas:
 4. Revisar configuración final de entorno y defaults seguros.
 
 Entregables:
+
 - Suite mínima de tests ejecutable.
 - Checklist de robustez completado.
 
 Criterio de salida:
+
 - Pruebas críticas en verde y criterios funcionales del MVP cumplidos.
 
 Criterios de validación:
+
 1. Los tests unitarios de IceService cubren fórmula, redondeo y validaciones de rango.
 2. Los e2e críticos cubren CRUD, ICE manual, estimate IA y priorización.
 3. No existen regresiones funcionales frente al contrato OpenAPI.
@@ -291,6 +330,7 @@ Criterios de validación:
 ### 6.3 Matriz de definición de terminado (DoD)
 
 Una fase se considera terminada cuando:
+
 1. Endpoints de la fase responden según contrato esperado.
 2. Validaciones y errores de la fase son consistentes.
 3. Se registran decisiones técnicas relevantes.
@@ -309,11 +349,13 @@ Una fase se considera terminada cuando:
   - Fase 6 + cierre
 
 Nota:
+
 - Este cronograma es orientativo; ajustar según ritmo del curso y disponibilidad.
 
 ## 7. Resultado esperado
 
 Al finalizar el plan, el equipo dispone de una API NestJS MVP que:
+
 - Cumple CRUD de tareas.
 - Calcula y persiste ICE manual.
 - Estima ICE con IA y maneja errores externos.

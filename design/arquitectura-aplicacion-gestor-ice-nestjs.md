@@ -1,4 +1,5 @@
 # Arquitectura de la Aplicación
+
 ## Gestor ICE MVP (NestJS + TypeScript)
 
 Fecha: 11 de marzo de 2026
@@ -6,6 +7,7 @@ Fecha: 11 de marzo de 2026
 ## 1. Objetivo y alcance técnico
 
 Definir una arquitectura simple, modular y mantenible para una API REST en NestJS que permita:
+
 - CRUD de tareas.
 - Cálculo ICE manual.
 - Estimación ICE con IA remota.
@@ -14,6 +16,7 @@ Definir una arquitectura simple, modular y mantenible para una API REST en NestJ
 Esta arquitectura está pensada para un MVP de curso, priorizando claridad y buenas prácticas básicas de backend con TypeScript.
 
 ### 1.1 Incluye
+
 - API HTTP en NestJS.
 - Arquitectura de persistencia desacoplada mediante puertos y adaptadores.
 - Implementación inicial local con SQLite + Prisma.
@@ -21,6 +24,7 @@ Esta arquitectura está pensada para un MVP de curso, priorizando claridad y bue
 - Validaciones de entrada y manejo de errores controlado.
 
 ### 1.2 No incluye
+
 - Frontend web o móvil.
 - Multi-tenant avanzado.
 - RBAC complejo.
@@ -130,22 +134,26 @@ Nota: los nombres son guía de diseño. La idea clave es que el puerto viva cerc
 ## 5. Módulos y responsabilidades
 
 ## 5.1 TasksModule
+
 Dueño exclusivo de la entidad Task, su persistencia y todos los endpoints bajo `/tasks`.
 
 Importa: IceModule, AiModule.
 Depende de: `TaskRepositoryPort`.
 
 Controllers:
+
 - `TasksController` — CRUD y listado (`/tasks`, `/tasks/:id`).
 - `TasksIceController` — Endpoints ICE (`/tasks/:id/ice/manual`, `/tasks/:id/ice/estimate`). Vive en el mismo módulo para reutilizar el prefijo de ruta `:id` sin duplicar lógica de resolución de Task.
 
 Funciones principales:
+
 - CRUD completo de tareas.
 - Listado priorizado por score con query `sort=ice`.
 - Orquestación de operaciones ICE: busca la tarea, delega cálculo/estimación a IceService o AiService, y persiste el resultado vía repositorio.
 - Recalcular `iceScore` cuando se actualizan campos ICE vía `PATCH`.
 
 Endpoints:
+
 - `POST /tasks`
 - `GET /tasks`
 - `GET /tasks/:id`
@@ -155,11 +163,13 @@ Endpoints:
 - `POST /tasks/:id/ice/estimate`
 
 ## 5.2 IceModule
+
 Módulo de lógica pura ICE. No tiene controller, no accede a base de datos, no conoce la entidad Task.
 
 Exporta: IceService.
 
 Funciones principales:
+
 - Cálculo de `iceScore` a partir de valores numéricos.
 - Validación de rango (1..10).
 - Clamp y normalización de valores ICE (incluidos los provenientes de IA).
@@ -167,26 +177,31 @@ Funciones principales:
 No tiene endpoints propios. TasksModule lo consume como dependencia.
 
 ## 5.3 AiModule
+
 Responsable de integración HTTP con proveedor de IA remoto. No aplica reglas de dominio ICE.
 
 Exporta: AiService.
 
 Funciones principales:
+
 - Construcción de prompt con formato JSON estricto.
 - Llamada HTTP con timeout configurable.
 - Parseo y validación estructural del payload de respuesta.
 - Mapeo de errores técnicos (timeout, red, payload inválido) a error de dominio `AI_UNAVAILABLE`.
 
 Lo que NO hace:
+
 - No aplica clamp ni normalización de valores ICE (eso es responsabilidad de IceService).
 - No conoce la entidad Task ni accede a base de datos.
 
 ## 6. Servicios principales
 
 ## 6.1 TasksService
+
 Orquestador principal. No accede al ORM directamente; depende de un puerto de repositorio.
 
 Casos de uso CRUD:
+
 - `createTask(data)`
 - `listTasks(sort?)`
 - `getTaskById(id)`
@@ -194,24 +209,30 @@ Casos de uso CRUD:
 - `deleteTask(id)`
 
 Casos de uso ICE (orquestación):
+
 - `applyManualIce(taskId, impact, confidence, effort)` — busca tarea, delega cálculo a IceService, persiste.
 - `estimateIceWithAi(taskId)` — busca tarea, llama a AiService con la description, pasa resultado crudo a IceService para clamp y cálculo, persiste con `iceSource=ai`.
 
 Regla clave:
+
 - Si en `updateTask` cambian `impact`, `confidence` o `effort`, delegar recálculo a `IceService.calculateScore()` antes de persistir.
 
 Dependencia técnica esperada:
+
 - `TaskRepositoryPort`, no `PrismaService`.
 
 ## 6.2 IceService
+
 Lógica pura sin efectos secundarios. No accede a base de datos ni conoce la entidad Task.
 
 Métodos:
+
 - `calculateScore(impact, confidence, effort)` — aplica fórmula y devuelve entero.
 - `clampValues(raw)` — normaliza valores a rango 1..10 (usado para salida de IA).
 - `validateRange(impact, confidence, effort)` — lanza error si fuera de rango.
 
 Reglas clave:
+
 - `effort` nunca puede ser 0.
 - Rango permitido 1..10.
 - Fórmula:
@@ -221,12 +242,15 @@ Reglas clave:
 Este servicio es fácilmente testeable de forma unitaria al no tener dependencias de infraestructura.
 
 ## 6.3 AiService
+
 Adaptador HTTP puro. No aplica reglas ICE.
 
 Métodos:
+
 - `estimateIce(description)` — envía prompt al proveedor y devuelve payload crudo parseado.
 
 Comportamiento esperado:
+
 - Retorna objeto crudo parseado con:
   - impact (número sin clamp)
   - confidence (número sin clamp)
@@ -237,12 +261,15 @@ Comportamiento esperado:
 - Si el proveedor falla o responde payload estructuralmente inválido, lanza error de dominio para respuesta 502.
 
 ## 6.4 TaskRepositoryPort
+
 Contrato de persistencia de la entidad Task.
 
 Objetivo:
+
 - Permitir cambiar SQLite + Prisma por Postgres, MongoDB, API externa o almacenamiento en memoria sin reescribir `TasksService`.
 
 Operaciones mínimas del contrato:
+
 - `create(taskData)`
 - `findById(id)`
 - `findAll(sort?)`
@@ -250,11 +277,13 @@ Operaciones mínimas del contrato:
 - `delete(id)`
 
 Responsabilidades del puerto:
+
 - Resolver lectura y escritura de Task.
 - Garantizar el orden cuando `sort=ice` sea solicitado por la aplicación.
 - Ocultar detalles de ORM, SQL, índices o formato del almacenamiento.
 
 Responsabilidades que NO debe asumir:
+
 - No calcular `iceScore`.
 - No aplicar reglas ICE.
 - No decidir semántica HTTP.
@@ -264,6 +293,7 @@ Responsabilidades que NO debe asumir:
 Entidad principal: Task
 
 Campos funcionales:
+
 - id (uuid)
 - title
 - description
@@ -281,6 +311,7 @@ Campos funcionales:
 - updatedAt
 
 ### 7.1 Reglas de persistencia
+
 - `createdAt` y `updatedAt` automáticos.
 - `iceScore` es un dato derivado calculado por la aplicación antes de persistir.
 - La implementación actual lo almacena como entero para facilitar ordenación y consulta.
@@ -294,14 +325,17 @@ Campos funcionales:
   - set `iceSource=manual`
 
 ### 7.2 Índices recomendados
+
 - En la implementación Prisma/SQLite:
   - índice por `createdAt` para listado por defecto.
   - índice por `iceScore` para priorización.
 
 Nota de diseño:
+
 - Los índices no forman parte del contrato de aplicación; son una optimización del adaptador concreto.
 
 ### 7.3 Estrategia de extensibilidad
+
 - La aplicación asume un único contrato de repositorio para Task.
 - Cada nueva persistencia implementa el mismo puerto y registra su adaptador en el contenedor de NestJS.
 - El cambio de persistencia no debe alterar:
@@ -311,6 +345,7 @@ Nota de diseño:
   - errores funcionales (`NOT_FOUND`, `VALIDATION_ERROR`, etc.)
 
 Persistencias futuras viables:
+
 - PostgreSQL manteniendo Prisma.
 - MongoDB con repositorio alternativo.
 - Repositorio en memoria para tests.
@@ -318,19 +353,20 @@ Persistencias futuras viables:
 
 ## 8. Mapeo de endpoints a componentes
 
-| Endpoint | Controller | Servicio principal | Resultado |
-|---|---|---|---|
-| POST /tasks | TasksController | TasksService.createTask | 201 |
-| GET /tasks | TasksController | TasksService.listTasks | 200 |
-| GET /tasks/:id | TasksController | TasksService.getTaskById | 200 / 404 |
-| PATCH /tasks/:id | TasksController | TasksService.updateTask | 200 / 400 / 404 |
-| DELETE /tasks/:id | TasksController | TasksService.deleteTask | 204 / 404 |
-| POST /tasks/:id/ice/manual | TasksIceController | TasksService.applyManualIce → IceService | 200 / 400 / 404 |
+| Endpoint                     | Controller         | Servicio principal                                      | Resultado       |
+| ---------------------------- | ------------------ | ------------------------------------------------------- | --------------- |
+| POST /tasks                  | TasksController    | TasksService.createTask                                 | 201             |
+| GET /tasks                   | TasksController    | TasksService.listTasks                                  | 200             |
+| GET /tasks/:id               | TasksController    | TasksService.getTaskById                                | 200 / 404       |
+| PATCH /tasks/:id             | TasksController    | TasksService.updateTask                                 | 200 / 400 / 404 |
+| DELETE /tasks/:id            | TasksController    | TasksService.deleteTask                                 | 204 / 404       |
+| POST /tasks/:id/ice/manual   | TasksIceController | TasksService.applyManualIce → IceService                | 200 / 400 / 404 |
 | POST /tasks/:id/ice/estimate | TasksIceController | TasksService.estimateIceWithAi → AiService + IceService | 200 / 404 / 502 |
 
 ## 9. Validación y manejo de errores
 
 Estrategia recomendada:
+
 - Validación de DTOs con class-validator y ValidationPipe global.
 - Filtro global de excepciones para estandarizar el formato:
   - statusCode
@@ -338,6 +374,7 @@ Estrategia recomendada:
   - message
 
 Errores funcionales clave:
+
 - `VALIDATION_ERROR` -> 400
 - `NOT_FOUND` -> 404
 - `AI_UNAVAILABLE` -> 502
@@ -345,6 +382,7 @@ Errores funcionales clave:
 ## 10. Configuración y entorno
 
 Variables de entorno:
+
 - `PORT`
 - `DATABASE_URL`
 - `GEMINI_API_KEY`
@@ -352,11 +390,13 @@ Variables de entorno:
 - `AI_TIMEOUT_MS`
 
 Recomendación:
+
 - Validar variables al arranque para fail-fast y evitar errores en runtime.
 
 ## 11. Estrategia de testing mínima
 
 Pruebas unitarias:
+
 - IceService:
   - cálculo de score
   - redondeo correcto
@@ -364,6 +404,7 @@ Pruebas unitarias:
   - caso effort inválido
 
 Pruebas e2e:
+
 - CRUD completo de tareas.
 - `POST /tasks/:id/ice/manual`.
 - `POST /tasks/:id/ice/estimate`:
@@ -397,6 +438,7 @@ Mitigación: responsabilidades simples por módulo y límites técnicos claros d
 ## 14. Resultado esperado del MVP
 
 La API se considera arquitectónicamente completa cuando:
+
 - Expone CRUD funcional de tareas.
 - Calcula y persiste ICE manual correctamente.
 - Estima ICE con IA y persiste metadatos.
